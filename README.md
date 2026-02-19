@@ -121,8 +121,8 @@ Camera Frame (YUV420)
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/your-username/domino_dots.git
-cd domino_dots
+git clone https://github.com/Ryan-PG/domino_dot_detector
+cd domino_dot_detector
 ```
 
 **2. Install dependencies**
