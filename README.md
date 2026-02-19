@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🁣 Domino Dots
+# 🁣 Ry Dots
 
 **Real-time domino dot detection for Android, powered by OpenCV**
 
