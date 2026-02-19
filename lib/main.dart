@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Domino Scanner',
+      title: 'Ry Dots',
       theme: ThemeData.dark(),
       home: DominoScannerScreen(cameras: cameras),
     );
