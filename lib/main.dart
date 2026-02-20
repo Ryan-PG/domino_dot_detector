@@ -1,6 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'screens/domino_scanner_screen.dart';
+import 'screens/splash_screen.dart'; // ← change import
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +16,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Ry Dots',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: DominoScannerScreen(cameras: cameras),
+      home: SplashScreen(cameras: cameras), // ← show splash first
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import '../services/dot_detector.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DominoScannerScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -28,6 +30,13 @@ class _DominoScannerScreenState extends State<DominoScannerScreen> {
   void initState() {
     super.initState();
     _initCamera();
+  }
+
+  Future<void> _openAboutMe() async {
+    final uri = Uri.parse('https://links.ryanheida.com/');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _pickAndProcessImage() async {
@@ -122,7 +131,6 @@ class _DominoScannerScreenState extends State<DominoScannerScreen> {
     _isProcessing = true;
 
     try {
-      // Run conversion + detection in an isolate-friendly way
       final jpegBytes = await _convertYuvToJpeg(image);
       if (jpegBytes == null) return;
 
@@ -136,7 +144,8 @@ class _DominoScannerScreenState extends State<DominoScannerScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Frame processing error: $e');
+      // Silently ignore null frame errors from camerax
+      debugPrint('Frame skipped: $e');
     } finally {
       _isProcessing = false;
     }
@@ -204,7 +213,7 @@ class _DominoScannerScreenState extends State<DominoScannerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Domino Dot Scanner'),
+        title: const Text('Ry Dots - Domino Scanner'),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         actions: [
@@ -221,42 +230,116 @@ class _DominoScannerScreenState extends State<DominoScannerScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Stats bar
-          Container(
-            color: Colors.black87,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _StatCard(
-                  label: 'Current Dots',
-                  value: '$_dotCount',
-                  color: Colors.cyanAccent,
+          Column(
+            children: [
+              // Stats bar
+              Container(
+                color: Colors.black87,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 20,
                 ),
-                _StatCard(
-                  label: 'Max Dots',
-                  value: '$_maxDots',
-                  color: Colors.orangeAccent,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _StatCard(
+                      label: 'Current Dots',
+                      value: '$_dotCount',
+                      color: Colors.cyanAccent,
+                    ),
+                    _StatCard(
+                      label: 'Max Dots',
+                      value: '$_maxDots',
+                      color: Colors.orangeAccent,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              // Main view — shows processed frame with dot circles drawn
+              Expanded(
+                child: _cameraReady
+                    ? _processedFrame != null
+                          ? Image.memory(
+                              _processedFrame!,
+                              fit: BoxFit.contain,
+                              gaplessPlayback:
+                                  true, // prevents flicker between frames
+                            )
+                          : CameraPreview(_cameraController)
+                    : const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+              ),
+            ],
           ),
-          // Main view — shows processed frame with dot circles drawn
-          Expanded(
-            child: _cameraReady
-                ? _processedFrame != null
-                      ? Image.memory(
-                          _processedFrame!,
-                          fit: BoxFit.contain,
-                          gaplessPlayback:
-                              true, // prevents flicker between frames
-                        )
-                      : CameraPreview(_cameraController)
-                : const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
+
+          // ✅ About Me floating button
+          Positioned(
+            bottom: 24,
+            left: 24,
+            child: GestureDetector(
+              onTap: _openAboutMe,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(50),
+                      child: CachedNetworkImage(
+                        imageUrl:
+                            'https://links.ryanheida.com/images/ProfilePicture.png', // ← your image URL here
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.cover,
+                        // Shows a tiny spinner while loading for the first time
+                        placeholder: (context, url) => const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white54,
+                          ),
+                        ),
+                        // Falls back to the original icon if no internet
+                        errorWidget: (context, url, error) => const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'About Ryan Heida',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
